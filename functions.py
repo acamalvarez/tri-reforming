@@ -4,6 +4,17 @@ import pandas as pd
 from constants import Constants
 from scipy.optimize import minimize
 
+def convert_initial_data(x):
+
+    final = np.zeros(7)
+    final[0:4] = x
+    
+
+    return final
+    
+# print(convert_initial_data([1.0, 0.5, 0.3, 0.4]))
+
+
 def Gibbs(x, p):
     '''
     Arguments:
@@ -14,6 +25,7 @@ def Gibbs(x, p):
     Returns:
     Gibbs free energy
     '''
+
     # converts the list of moles of each compound into an numpy array
     nj = np.array([x])
 
@@ -40,6 +52,9 @@ def Gibbs(x, p):
     G = first + second + third
 
     return G
+
+
+print(Gibbs([1.0, 0.3, 1.0, 0.0, 0.0, 0.0, 0.0], [500, 1]))
 
 #  CH4  CO2  H2O  O2    CO   H2   He   C
 def calculate_mol(mol_0, T, P):
