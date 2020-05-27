@@ -4,23 +4,30 @@ import pandas as pd
 from constants import Constants
 from scipy.optimize import minimize
 
-def convert_initial_data(x):
 
-    final = np.zeros(7)
+def convert_list(x):
+    '''
+    Converts a list of 4 elements into a list of 7 elements with the final 3 being zeros
+
+    Arguments:
+    -- x
+
+    Returns:
+    -- The list wit 7 elements
+    '''
+
+    final = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     final[0:4] = x
-    
 
     return final
-    
-# print(convert_initial_data([1.0, 0.5, 0.3, 0.4]))
 
 
 def Gibbs(x, p):
     '''
     Arguments:
-    T -- input temperature
-    P -- input pressure
-    x -- list of moles of compound in the following order CH4, CO2, H2O, O2, CO, H2, He, C
+    -- T input temperature
+    -- P input pressure
+    -- x list of moles of compound in the following order CH4, CO2, H2O, O2, CO, H2, C
 
     Returns:
     Gibbs free energy
@@ -54,8 +61,6 @@ def Gibbs(x, p):
     return G
 
 
-print(Gibbs([1.0, 0.3, 1.0, 0.0, 0.0, 0.0, 0.0], [500, 1]))
-
 #  CH4  CO2  H2O  O2    CO   H2   He   C
 def calculate_mol(mol_0, T, P):
     '''
@@ -70,6 +75,9 @@ def calculate_mol(mol_0, T, P):
     CH4, CO2, H2O, O2, CO, H2, C
 
     '''
+
+    mol_0 = convert_list(mol_0)
+    
     # calculates temperature and pressure to convinient units
     T = T + 273  # temperature, K
     P = 1  # pressure, bar
@@ -95,7 +103,6 @@ def calculate_mol(mol_0, T, P):
 
     return result.x
 
-
 def find_results(mol_0, Temp, P):
     """
     returns a data frame with the results at each temperature of the 
@@ -103,7 +110,7 @@ def find_results(mol_0, Temp, P):
     moles of each compound; conversions of CH4, CO2, and H2O; and H2/CO ratio
 
     Arguments:
-    -- moles_0: initial moles
+    -- mol_0: list of initial moles in this order [CH4, CO2, H2O, O2]
     -- Temp: array of the temperature to evaluate, C
     -- P: pressure of the system, bar
 
@@ -111,7 +118,7 @@ def find_results(mol_0, Temp, P):
     -- data frame of the results
 
     """
-    
+
     # array for storing the moles
     mol = np.zeros((len(Temp), 7))
 
@@ -122,7 +129,7 @@ def find_results(mol_0, Temp, P):
     for i in np.arange(len(Temp)):
 
         # calculates moles and storages in the moles array
-        mol[i] = calculate_mol(mol_0, Temp[i], P)
+        mol[i] = calculate_mol(mol_0[0:4], Temp[i], P)
 
         # calculates conversions and storates in the conversions array
         conversions[i] = 100 * (mol_0 - mol[i]) / mol_0
@@ -146,17 +153,40 @@ def find_results(mol_0, Temp, P):
 
 def generate_data_for_NN(mol_0, Temp, P):
 
+    '''
+    Generate data that could be used when training a neural network
+
+    Arguments:
+    -- mol_0: list of initial moles in this order: [CH4, CO2, H2O, O2]
+    -- Temp: array of the temperature to evaluate, C
+    -- P: pressure of the system, bar
+
+    Returns:
+    Data frame with the following values: initial mol of CH4, CO2, H2O, and O2; conversion of CH4, CO2, H2O; and H2/CO ratio
+    '''
+
+    mol_0 = convert_list(mol_0)
+
     finalResults = find_results(mol_0, Temp, P)[['conv_CH4', 'conv_CO2', 'conv_H2O', 'H2/CO']]
     finalResults['CH4_0'] = mol_0[0]
     finalResults['CO2_0'] = mol_0[1]
-    finalResults['H2O'] = mol_0[2]
+    finalResults['H2O_0'] = mol_0[2]
     finalResults['O2_0'] = mol_0[3]
+    finalResults['Temperature'] = Temp
 
-    return finalResults[['CH4_0', 'CO2_0', 'H2O', 'O2_0', 'conv_CH4', 'conv_CO2', 'conv_H2O', 'H2/CO']]
+    return finalResults[['CH4_0', 'CO2_0', 'H2O_0', 'O2_0', 'conv_CH4', 'conv_CO2', 'conv_H2O', 'H2/CO']]
 
 
-def concat_results(moles_0, Temp, P):
+def csv_for_NN(moles_0, Temp, P):
+    '''
+    Creates a csv file at each initial mol of the moles_0 array for all the temperature in the array Temp
+
+    Arguments:
+    -- moles_0: numpy array with all the initial moles organized by rows
+    -- Temp: numpy array of the temperatures to be evaluated
+    -- P: pressure of the system
+    '''
 
     allResults = pd.concat(generate_data_for_NN(mol_0, Temp, P) for mol_0 in moles_0)
 
-    return allResults
+    allResults.to_csv('dataForNN.csv', index_label='Temperature')
