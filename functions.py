@@ -1,12 +1,12 @@
-
 import numpy as np
 import pandas as pd
-from constants import Constants
 from scipy.optimize import minimize
+
+from constants import Constants
 
 
 def convert_list(x):
-    '''
+    """
     Converts a list of 4 elements into a list of 7 elements with the final 3 being zeros
 
     Arguments:
@@ -14,16 +14,13 @@ def convert_list(x):
 
     Returns:
     -- The list wit 7 elements
-    '''
+    """
 
-    final = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    final[0:4] = x
-
-    return final
+    return x + [0.0, 0.0, 0.0]
 
 
 def Gibbs(x, p):
-    '''
+    """
     Arguments:
     -- T input temperature
     -- P input pressure
@@ -31,7 +28,7 @@ def Gibbs(x, p):
 
     Returns:
     Gibbs free energy
-    '''
+    """
 
     # converts the list of moles of each compound into an numpy array
     nj = np.array([x])
@@ -43,7 +40,7 @@ def Gibbs(x, p):
     # Vector to find the Delta free energy at a specific temperature
     T_vector = np.array([[1], [T], [T**2], [T**3], [T**4]])
 
-    Enj = np.sum(nj) # total moles
+    Enj = np.sum(nj)  # total moles
     y_j = nj / Enj
 
     # vector for the coefficients of fugacity
@@ -63,21 +60,21 @@ def Gibbs(x, p):
 
 #  CH4  CO2  H2O  O2    CO   H2   He   C
 def calculate_mol(mol_0, T, P):
-    '''
+    """
     calculates the moles at the equilibrium
     Arguments:
-    -- moles_0: initial moles in this order: 
+    -- moles_0: initial moles in this order:
         CH4, CO2, H2O, O2, CO, H2, C
     -- T: temperature, °C
     -- P: pressure, atm
     Returns:
-    -- numpy array with the moles at the equilibrium of 
+    -- numpy array with the moles at the equilibrium of
     CH4, CO2, H2O, O2, CO, H2, C
 
-    '''
+    """
 
     mol_0 = convert_list(mol_0)
-    
+
     # calculates temperature and pressure to convinient units
     T = T + 273  # temperature, K
     P = 1  # pressure, bar
@@ -89,23 +86,28 @@ def calculate_mol(mol_0, T, P):
     beq = np.dot(Constants.Aeq, np.array(mol_0))
 
     # Defines the equality constraints with the elemental balance
-    eq_cons = {'type': 'eq', 'fun': lambda x: np.dot(
-        Constants.Aeq, np.array(x)) - beq}
+    eq_cons = {"type": "eq", "fun": lambda x: np.dot(Constants.Aeq, np.array(x)) - beq}
 
     # options for the solver of the optimization
-    options = {'ftol': 1e-6, 'disp': False, 'maxiter': 1000,
-               'eps': 1.4901161193847656e-8}
+    options = {"ftol": 1e-6, "disp": False, "maxiter": 1000, "eps": 1.4901161193847656e-8}
 
     # solve the optimization problem
-    result = minimize(Gibbs, Constants.n0, args=parameters, method='SLSQP',
-                      bounds=Constants.bnds,
-                      constraints=eq_cons, options=options)
+    result = minimize(
+        Gibbs,
+        Constants.n0,
+        args=parameters,
+        method="SLSQP",
+        bounds=Constants.bnds,
+        constraints=eq_cons,
+        options=options,
+    )
 
     return result.x
 
+
 def find_results(mol_0, Temp, P):
     """
-    returns a data frame with the results at each temperature of the 
+    returns a data frame with the results at each temperature of the
     Temp array in the following order:
     moles of each compound; conversions of CH4, CO2, and H2O; and H2/CO ratio
 
@@ -127,7 +129,6 @@ def find_results(mol_0, Temp, P):
 
     # for loop to calculate moles and conversions at each temperature
     for i in np.arange(len(Temp)):
-
         # calculates moles and storages in the moles array
         mol[i] = calculate_mol(mol_0[0:4], Temp[i], P)
 
@@ -135,25 +136,22 @@ def find_results(mol_0, Temp, P):
         conversions[i] = 100 * (mol_0 - mol[i]) / mol_0
 
     # creates moles data frame
-    df_mol = pd.DataFrame(data=mol, index=Temp,
-                            columns=Constants.columns_mol)
+    df_mol = pd.DataFrame(data=mol, index=Temp, columns=Constants.columns_mol)
 
     # creates conversions data frame
-    df_conv = pd.DataFrame(data=conversions, index=Temp,
-                        columns=Constants.columns_conversions)
+    df_conv = pd.DataFrame(data=conversions, index=Temp, columns=Constants.columns_conversions)
 
     # concatenate the data frames in results data frame
-    df_results = pd.concat(
-        [df_mol, df_conv[['conv_CH4', 'conv_CO2', 'conv_H2O']]], axis=1)
+    df_results = pd.concat([df_mol, df_conv[["conv_CH4", "conv_CO2", "conv_H2O"]]], axis=1)
 
     # calculates H2/CO ratio and adds a column to the data frame results
-    df_results['H2/CO'] = df_results['mol_H2'] / df_results['mol_CO']
+    df_results["H2/CO"] = df_results["mol_H2"] / df_results["mol_CO"]
 
     return df_results
 
-def generate_data_for_NN(mol_0, Temp, P):
 
-    '''
+def generate_data_for_NN(mol_0, Temp, P):
+    """
     Generate data that could be used when training a neural network
 
     Arguments:
@@ -163,30 +161,30 @@ def generate_data_for_NN(mol_0, Temp, P):
 
     Returns:
     Data frame with the following values: initial mol of CH4, CO2, H2O, and O2; conversion of CH4, CO2, H2O; and H2/CO ratio
-    '''
+    """
 
     mol_0 = convert_list(mol_0)
 
-    finalResults = find_results(mol_0, Temp, P)[['conv_CH4', 'conv_CO2', 'conv_H2O', 'H2/CO']]
-    finalResults['CH4_0'] = mol_0[0]
-    finalResults['CO2_0'] = mol_0[1]
-    finalResults['H2O_0'] = mol_0[2]
-    finalResults['O2_0'] = mol_0[3]
-    finalResults['Temperature'] = Temp
+    finalResults = find_results(mol_0, Temp, P)[["conv_CH4", "conv_CO2", "conv_H2O", "H2/CO"]]
+    finalResults["CH4_0"] = mol_0[0]
+    finalResults["CO2_0"] = mol_0[1]
+    finalResults["H2O_0"] = mol_0[2]
+    finalResults["O2_0"] = mol_0[3]
+    finalResults["Temperature"] = Temp
 
-    return finalResults[['CH4_0', 'CO2_0', 'H2O_0', 'O2_0', 'conv_CH4', 'conv_CO2', 'conv_H2O', 'H2/CO']]
+    return finalResults[["CH4_0", "CO2_0", "H2O_0", "O2_0", "conv_CH4", "conv_CO2", "conv_H2O", "H2/CO"]]
 
 
 def csv_for_NN(moles_0, Temp, P):
-    '''
+    """
     Creates a csv file at each initial mol of the moles_0 array for all the temperature in the array Temp
 
     Arguments:
     -- moles_0: numpy array with all the initial moles organized by rows
     -- Temp: numpy array of the temperatures to be evaluated
     -- P: pressure of the system
-    '''
+    """
 
     allResults = pd.concat(generate_data_for_NN(mol_0, Temp, P) for mol_0 in moles_0)
 
-    allResults.to_csv('dataForNN.csv', index_label='Temperature')
+    allResults.to_csv("data_for_nn.csv", index_label="Temperature")
