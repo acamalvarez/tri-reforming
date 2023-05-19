@@ -19,27 +19,27 @@ def Gibbs(x: List[float], p: List) -> float:
     """
 
     # converts the list of moles of each compound into an numpy array
-    nj = np.array([x])
+    nj = np.array(x)
 
     # Defines the T and p, from the parameters list
     T = p[0]
     P = p[1]
 
     # Vector to find the Delta free energy at a specific temperature
-    T_vector = np.array([[1], [T], [T**2], [T**3], [T**4]])
+    T_vector = np.array([1, T, T**2, T**3, T**4])
 
     Enj = np.sum(nj) # total moles
     y_j = nj / Enj # fractions
 
     # vector for the coefficients of fugacity
-    phi = np.ones((1, 7))
+    phi = np.ones(7)
 
     # Gibbs free energy of formation, kJ/mol
     Gj0 = np.dot(Constants.del_G_f, T_vector)
 
-    first = np.sum(nj[0][0:-1] * Gj0.T[0][0:-1])
-    second = Constants.R * T * np.sum(nj[0][0:-1] * np.log(y_j[0][0:-1] * phi[0][0:-1] * P / Constants.P0))
-    third = nj[0][-1] * Gj0.T[0][-1]
+    first = np.sum(nj[0:-1] * Gj0[0:-1])
+    second = Constants.R * T * np.sum(nj[0:-1] * np.log(y_j[0:-1] * phi[0:-1] * P / Constants.P0))
+    third = nj[-1] * Gj0[-1]
 
     return first + second + third
 
