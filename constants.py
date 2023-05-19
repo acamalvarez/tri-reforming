@@ -9,8 +9,8 @@ class Constants:
     P0 = 1 / 1.01325  # reference pressure, bar
 
     # Delta Gibs energy of formation,
-    DelG_f_raw = pd.read_csv("DelG_f.csv", index_col="Compound")  # pandas dataframe
-    DelG_f = DelG_f_raw.values  # numpy array
+    del_G_f_raw_df = pd.read_csv("DelG_f.csv", index_col="Compound")  # pandas dataframe
+    del_G_f = del_G_f_raw_df.values  # numpy array
 
     # Matrix of elemental ba
     # lance

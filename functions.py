@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
@@ -5,26 +7,12 @@ from scipy.optimize import minimize
 from constants import Constants
 
 
-def convert_list(x):
-    """
-    Converts a list of 4 elements into a list of 7 elements with the final 3 being zeros
-
-    Arguments:
-    -- x
-
-    Returns:
-    -- The list wit 7 elements
-    """
-
-    return x + [0.0, 0.0, 0.0]
-
-
-def Gibbs(x, p):
+def Gibbs(x: List[float], p: List) -> float:
     """
     Arguments:
+    -- x list of moles of compound in the following order CH4, CO2, H2O, O2, CO, H2, C
     -- T input temperature
     -- P input pressure
-    -- x list of moles of compound in the following order CH4, CO2, H2O, O2, CO, H2, C
 
     Returns:
     Gibbs free energy
@@ -40,22 +28,20 @@ def Gibbs(x, p):
     # Vector to find the Delta free energy at a specific temperature
     T_vector = np.array([[1], [T], [T**2], [T**3], [T**4]])
 
-    Enj = np.sum(nj)  # total moles
-    y_j = nj / Enj
+    Enj = np.sum(nj) # total moles
+    y_j = nj / Enj # fractions
 
     # vector for the coefficients of fugacity
     phi = np.ones((1, 7))
 
     # Gibbs free energy of formation, kJ/mol
-    Gj0 = np.dot(Constants.DelG_f, T_vector)
+    Gj0 = np.dot(Constants.del_G_f, T_vector)
 
     first = np.sum(nj[0][0:-1] * Gj0.T[0][0:-1])
     second = Constants.R * T * np.sum(nj[0][0:-1] * np.log(y_j[0][0:-1] * phi[0][0:-1] * P / Constants.P0))
     third = nj[0][-1] * Gj0.T[0][-1]
 
-    G = first + second + third
-
-    return G
+    return first + second + third
 
 
 #  CH4  CO2  H2O  O2    CO   H2   He   C
@@ -72,8 +58,6 @@ def calculate_mol(mol_0, T, P):
     CH4, CO2, H2O, O2, CO, H2, C
 
     """
-
-    mol_0 = convert_list(mol_0)
 
     # calculates temperature and pressure to convinient units
     T = T + 273  # temperature, K
@@ -130,7 +114,7 @@ def find_results(mol_0, Temp, P):
     # for loop to calculate moles and conversions at each temperature
     for i in np.arange(len(Temp)):
         # calculates moles and storages in the moles array
-        mol[i] = calculate_mol(mol_0[0:4], Temp[i], P)
+        mol[i] = calculate_mol(mol_0, Temp[i], P)
 
         # calculates conversions and storates in the conversions array
         conversions[i] = 100 * (mol_0 - mol[i]) / mol_0
@@ -162,8 +146,6 @@ def generate_data_for_NN(mol_0, Temp, P):
     Returns:
     Data frame with the following values: initial mol of CH4, CO2, H2O, and O2; conversion of CH4, CO2, H2O; and H2/CO ratio
     """
-
-    mol_0 = convert_list(mol_0)
 
     finalResults = find_results(mol_0, Temp, P)[["conv_CH4", "conv_CO2", "conv_H2O", "H2/CO"]]
     finalResults["CH4_0"] = mol_0[0]
