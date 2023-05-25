@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from constants import Constants
+from constants import Aeq, BOUNDS, COLUMNS_CONVERSIONS, COLUMNS_MOL, del_G_f, n0, P0, R
 
 
 def Gibbs(x: List[float], p: List) -> float:
@@ -35,10 +35,10 @@ def Gibbs(x: List[float], p: List) -> float:
     phi = np.ones(7)
 
     # Gibbs free energy of formation, kJ/mol
-    Gj0 = np.dot(Constants.del_G_f, T_vector)
+    Gj0 = np.dot(del_G_f, T_vector)
 
     first = sum(nj[0:-1] * Gj0[0:-1])
-    second = Constants.R * T * sum(nj[0:-1] * np.log(y_j[0:-1] * phi[0:-1] * P / Constants.P0))
+    second = R * T * sum(nj[0:-1] * np.log(y_j[0:-1] * phi[0:-1] * P / P0))
     third = nj[-1] * Gj0[-1]
 
     return first + second + third
@@ -67,10 +67,10 @@ def calculate_mol(mol_0, T, P):
     parameters = np.array([T, P])
 
     # calculates the vector of elemental balances
-    beq = np.dot(Constants.Aeq, np.array(mol_0))
+    beq = np.dot(Aeq, np.array(mol_0))
 
     # Defines the equality constraints with the elemental balance
-    eq_cons = {"type": "eq", "fun": lambda x: np.dot(Constants.Aeq, np.array(x)) - beq}
+    eq_cons = {"type": "eq", "fun": lambda x: np.dot(Aeq, np.array(x)) - beq}
 
     # options for the solver of the optimization
     options = {"ftol": 1e-6, "disp": False, "maxiter": 1000, "eps": 1.4901161193847656e-8}
@@ -78,10 +78,10 @@ def calculate_mol(mol_0, T, P):
     # solve the optimization problem
     result = minimize(
         Gibbs,
-        Constants.n0,
+        n0,
         args=parameters,
         method="SLSQP",
-        bounds=Constants.bnds,
+        bounds=BOUNDS,
         constraints=eq_cons,
         options=options,
     )
@@ -120,10 +120,10 @@ def find_results(mol_0, Temp, P):
         conversions[i] = 100 * (mol_0 - mol[i]) / mol_0
 
     # creates moles data frame
-    df_mol = pd.DataFrame(data=mol, index=Temp, columns=Constants.columns_mol)
+    df_mol = pd.DataFrame(data=mol, index=Temp, columns=COLUMNS_MOL)
 
     # creates conversions data frame
-    df_conv = pd.DataFrame(data=conversions, index=Temp, columns=Constants.columns_conversions)
+    df_conv = pd.DataFrame(data=conversions, index=Temp, columns=COLUMNS_CONVERSIONS)
 
     # concatenate the data frames in results data frame
     df_results = pd.concat([df_mol, df_conv[["conv_CH4", "conv_CO2", "conv_H2O"]]], axis=1)
