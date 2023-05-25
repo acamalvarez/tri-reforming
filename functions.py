@@ -169,4 +169,4 @@ def csv_for_NN(moles_0, Temp, P):
 
     allResults = pd.concat(generate_data_for_NN(mol_0, Temp, P) for mol_0 in moles_0)
 
-    allResults.to_csv("data_for_nn.csv", index_label="Temperature")
+    allResults.to_csv("data/data_for_nn.csv", index_label="Temperature")

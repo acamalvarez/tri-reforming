@@ -7,7 +7,7 @@ from constants import Strings
 
 plt.rcParams["axes.labelweight"] = "bold"
 
-# moles_0 =  np.genfromtxt('moles_0.csv', delimiter=',', skip_header=1)
+# moles_0 =  np.genfromtxt('data/moles_0.csv', delimiter=',', skip_header=1)
 
 moles_0 = [0.2, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0]
 
